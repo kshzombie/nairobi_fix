@@ -1,0 +1,98 @@
+{% extends "reports/base.html" %}
+
+{% block title %}Report a Streetlight Issue{% endblock %}
+
+{% block content_style %}
+padding: 20px; 
+max-width: 600px;
+margin: 0 auto;
+background-color: #f9f9f9;
+border-radius: 10px;
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+{% endblock %}
+
+{% block content %}
+    <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Report a Streetlight Issue</h2>
+
+    {% if error %}
+        <div style="background-color: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %} 
+
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+
+        <div style="margin-bottom: 15px;">
+            <label for="pole_id" style="display: block; font-weight: bold;">Pole ID / Nearest Address (Optional)</label>
+            <input type="text" id="pole_id" name="pole_id" maxlength="50" value="{{ pole_id_val|default:'' }}"
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+
+        <div style="margin-bottom: 15px; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb;">
+            <label for="id_image" style="display: block; font-weight: bold; margin-bottom: 5px;">
+                💡 Capture Photo of Streetlight:
+            </label>
+            <input type="file" name="image" id="id_image" accept="image/*" capture="environment" 
+                   class="form-control" style="width: 100%;">
+            <small style="color: #666;">Photos of the pole or fixture help crews identify the specific light.</small>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="light_type" style="display: block; font-weight: bold;">Type of Issue</label>
+            <select id="light_type" name="light_type" required 
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="">-- Select Issue --</option>
+                <option value="Out" {% if light_type_val == 'Out' %}selected{% endif %}>Light is Out</option>
+                <option value="Flickering" {% if light_type_val == 'Flickering' %}selected{% endif %}>Flickering</option>
+                <option value="Broken Fixture" {% if light_type_val == 'Broken Fixture' %}selected{% endif %}>Broken Fixture</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 10px; background: #fff; border: 1px dashed #bbb;">
+            <label style="font-weight: bold;">Location Status:</label>
+            <p id="location_status" style="font-weight: bold; color: #f39c12; margin: 5px 0;">Attempting to find GPS location...</p>
+        </div>
+
+        <button type="submit" id="submit_btn" disabled 
+                style="width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold;">
+            Submit Report (Waiting for Location)
+        </button>
+    </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const latInput = document.getElementById('latitude');
+    const lonInput = document.getElementById('longitude');
+    const statusDisplay = document.getElementById('location_status');
+    const submitBtn = document.getElementById('submit_btn');
+
+    function success(pos) {
+        const crd = pos.coords;
+        latInput.value = crd.latitude;
+        lonInput.value = crd.longitude;
+        statusDisplay.textContent = `✅ Location Verified! Accuracy: ${crd.accuracy.toFixed(1)}m`;
+        statusDisplay.style.color = 'green';
+        submitBtn.textContent = 'Submit Report';
+        submitBtn.disabled = false;
+        submitBtn.style.backgroundColor = '#2980b9';
+    }
+
+    function error(err) {
+        statusDisplay.textContent = `❌ GPS Error: ${err.message}. Using default coordinates.`;
+        statusDisplay.style.color = 'red';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit (No GPS)';
+        latInput.value = '-1.2863';
+        lonInput.value = '36.8172';
+    }
+
+    if (navigator.geolocation) {
+         navigator.geolocation.getCurrentPosition(success, error, {enableHighAccuracy: true});
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "reports/base.html" %}
+
+{% block title %}Nairobi Infrastructure Dashboard{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+
+    <style>
+        #map { height: calc(100vh - 60px); width: 100%; position: relative; }
+        /* Custom styling for the streetlight marker dot */
+        .streetlight-div-icon { background: none; border: none; }
+        .streetlight-icon-inner { 
+            background-color: #007bff; 
+            width: 15px; 
+            height: 15px; 
+            border-radius: 50%; 
+            border: 2px solid white; 
+            box-shadow: 0 0 8px rgba(0,0,0,0.5); 
+        }
+        #info-box {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border: 2px solid #2ecc71;
+            border-radius: 8px;
+            font-family: sans-serif;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            min-width: 150px;
+        }
+    </style>
+{% endblock %}
+
+{% block content_style %}padding: 0; max-width: none; margin: 0;{% endblock %}
+
+{% block content %}
+<div id="map">
+    <div id="info-box"><h4>Nairobi Map</h4>Hover over a Sub-County</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+
+    <script>
+    // 1. Initialize Map
+    const map = L.map('map').setView([-1.286389, 36.817223], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 2. Initialize Layer Groups
+    const potholeMarkers = L.markerClusterGroup();
+    const streetlightMarkers = L.markerClusterGroup();
+    const potholeHeatLayer = L.heatLayer([], { radius: 25, blur: 15 });
+    
+    const boundaryLayer = L.geoJSON(null, {
+        style: { color: '#2ecc71', weight: 2, fillOpacity: 0.1, dashArray: '5, 5' },
+        onEachFeature: function(feature, layer) {
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight,
+                click: (e) => layer.bindPopup(`<b>Sub-County:</b> ${feature.properties.name}`).openPopup()
+            });
+        }
+    });
+
+    // 3. Setup Layer Control (Add groups to map by default)
+    boundaryLayer.addTo(map);
+    potholeMarkers.addTo(map);
+    streetlightMarkers.addTo(map);
+
+    const overlayMaps = {
+        "Nairobi Boundaries": boundaryLayer,
+        "Pothole Clusters": potholeMarkers,
+        "Pothole Heatmap": potholeHeatLayer,
+        "Streetlight Clusters": streetlightMarkers
+    };
+    L.control.layers(null, overlayMaps, {collapsed: false}).addTo(map);
+
+    // 4. Custom Icon for Streetlights
+    const streetlightIcon = L.divIcon({
+        className: 'streetlight-div-icon',
+        html: '<div class="streetlight-icon-inner"></div>',
+        iconSize: [15, 15],
+        iconAnchor: [7, 7]
+    });
+
+    // 5. Helpers
+    function highlightFeature(e) {
+        var layer = e.target;
+        layer.setStyle({ weight: 4, color: '#27ae60', fillOpacity: 0.4 });
+        document.getElementById('info-box').innerHTML = '<h4>' + (layer.feature.properties.name || "Nairobi") + '</h4><p>Sub-County Area</p>';
+        layer.bringToFront();
+    }
+
+    function resetHighlight(e) {
+        boundaryLayer.resetStyle(e.target);
+        document.getElementById('info-box').innerHTML = '<h4>Nairobi Map</h4>Hover over a Sub-County';
+    }
+
+    function generatePopup(props, title) {
+        let content = `<b>${title}</b><br>Area: ${props.sub_county_name || 'Identifying...'}<br>`;
+        if (props.image) {
+            content += `<div style="margin-top:10px; text-align:center;">
+                            <a href="/media/${props.image}" target="_blank">
+                                <img src="/media/${props.image}" style="width:180px; border-radius:5px; border: 1px solid #ddd;">
+                            </a>
+                        </div>`;
+        }
+        content += `<br><b>Status:</b> ${props.status}`;
+        return content;
+    }
+
+    // 6. Data Processing Functions
+    function processPotholes(data) {
+        if (!data || !data.features) return;
+        const heatPoints = [];
+        L.geoJSON(data, {
+            onEachFeature: function(feature, layer) {
+                layer.bindPopup(generatePopup(feature.properties, "Pothole Report"));
+                potholeMarkers.addLayer(layer);
+                heatPoints.push([feature.geometry.coordinates[1], feature.geometry.coordinates[0], 0.5]);
+            }
+        });
+        potholeHeatLayer.setLatLngs(heatPoints);
+    }
+
+    function processStreetlights(data) {
+        if (!data || !data.features) return;
+        
+        // Clear old markers if any
+        streetlightMarkers.clearLayers();
+        
+        L.geoJSON(data, {
+            pointToLayer: function(feature, latlng) {
+                return L.marker(latlng, { icon: streetlightIcon });
+            },
+            onEachFeature: function(feature, layer) {
+                layer.bindPopup(generatePopup(feature.properties, "Streetlight Fault"));
+                streetlightMarkers.addLayer(layer);
+            }
+        });
+    }
+
+    // 7. Fetch Data
+    fetch('{% url "subcounty_data" %}').then(r => r.json()).then(data => boundaryLayer.addData(data));
+    fetch('{% url "pothole_data" %}').then(r => r.json()).then(data => processPotholes(data));
+    fetch('{% url "streetlight_data" %}').then(r => r.json()).then(data => processStreetlights(data));
+
+    </script>
+{% endblock %}

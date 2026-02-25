@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Urban Fix GIS{% endblock %}</title>
+    <style>
+        /* Global Reset */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
+        
+        /* Navbar Styling */
+        .navbar {
+            background-color: #2c3e50;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            color: white;
+        }
+        .navbar a {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .navbar a:hover {
+            background-color: #34495e;
+            color: #2ecc71;
+        }
+        .logo {
+            font-weight: bold;
+            font-size: 1.4em;
+            letter-spacing: 1px;
+            color: #2ecc71;
+        }
+
+        /* Dynamic Content Area */
+        .content {
+            {% block content_style %}
+            padding: 30px 20px; 
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: calc(100vh - 60px);
+            {% endblock %}
+        }
+
+        /* Responsive Navbar for Mobile Fieldwork */
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; text-align: center; }
+            .navbar div { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; }
+            .navbar a { padding: 5px 10px; font-size: 0.8em; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">📍 UrbanFix Nairobi</div>
+        <div>
+            <a href="{% url 'report_issue' %}">🚧 Report Pothole</a>
+            <a href="{% url 'streetlight_report_issue' %}">💡 Report Streetlight</a>
+            <a href="{% url 'dashboard' %}">🗺️ View Map</a>
+            <a href="/admin/" style="color: #bdc3c7; border-left: 1px solid #7f8c8d; margin-left: 10px; padding-left: 15px;">Admin Panel</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

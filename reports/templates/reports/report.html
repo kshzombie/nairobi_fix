@@ -1,0 +1,124 @@
+{% extends "reports/base.html" %}
+
+{% block title %}Report a Pothole{% endblock %}
+
+{% block content_style %}
+/* Layout optimization for mobile field reporting */
+padding: 20px; 
+max-width: 600px;
+margin: 0 auto;
+background-color: #f9f9f9;
+border-radius: 10px;
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+{% endblock %}
+
+{% block content %}
+    <h2 style="color: #2c3e50; border-bottom: 2px solid #2ecc71; padding-bottom: 10px;">Report a Pothole</h2>
+
+    {% if error %}
+        <div style="background-color: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+            <strong>Warning:</strong> {{ error }}
+        </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %} 
+
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+
+        <div style="margin-bottom: 15px;">
+            <label for="reporter_name" style="display: block; font-weight: bold;">Your Name (Optional)</label>
+            <input type="text" id="reporter_name" name="reporter_name" maxlength="100" 
+                   value="{{ reporter_name_val|default:'' }}" 
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+
+        <div style="margin-bottom: 15px; background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #c8e6c9;">
+            <label for="id_image" style="display: block; font-weight: bold; margin-bottom: 5px;">
+                📷 Capture Photo of Defect:
+            </label>
+            <input type="file" name="image" id="id_image" accept="image/*" capture="environment" 
+                   class="form-control" style="width: 100%;">
+            <small style="color: #666;">Photos help authorities verify the urgency of the repair.</small>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="severity" style="display: block; font-weight: bold;">Pothole Severity</label>
+            <select id="severity" name="severity" required 
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="">-- Select Severity --</option>
+                <option value="Low" {% if severity_val == 'Low' %}selected{% endif %}>Low (Minor Cracking)</option>
+                <option value="Medium" {% if severity_val == 'Medium' %}selected{% endif %}>Medium (Deep/Widening)</option>
+                <option value="High" {% if severity_val == 'High' %}selected{% endif %}>High (Hazardous/Vehicle Damage)</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="description" style="display: block; font-weight: bold;">Description (e.g., size, depth)</label>
+            <textarea id="description" name="description" rows="4" 
+                      style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">{{ description_val|default:'' }}</textarea>
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 10px; background: #fff; border: 1px dashed #bbb;">
+            <label style="font-weight: bold;">GPS Location Status:</label>
+            <p id="location_status" style="font-weight: bold; color: #f39c12; margin: 5px 0;">Attempting to find GPS location...</p>
+            <small>Precision is required for effective administrative spatial joins.</small>
+        </div>
+
+        <button type="submit" id="submit_btn" disabled 
+                style="width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: not-allowed;">
+            Submit Report (Waiting for Location)
+        </button>
+    </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const latInput = document.getElementById('latitude');
+    const lonInput = document.getElementById('longitude');
+    const statusDisplay = document.getElementById('location_status');
+    const submitBtn = document.getElementById('submit_btn');
+
+    function success(pos) {
+        const crd = pos.coords;
+        latInput.value = crd.latitude;
+        lonInput.value = crd.longitude;
+
+        statusDisplay.textContent = `✅ Location Found! (Accuracy: ${crd.accuracy.toFixed(1)}m)`;
+        statusDisplay.style.color = 'green';
+        
+        submitBtn.textContent = 'Submit Verified Report';
+        submitBtn.disabled = false;
+        submitBtn.style.cursor = 'pointer';
+        submitBtn.style.backgroundColor = '#2ecc71';
+    }
+
+    function error(err) {
+        statusDisplay.textContent = `❌ ERROR(${err.code}): GPS Access Denied.`;
+        statusDisplay.style.color = '#c62828';
+        
+        // Allowing submission with dummy values for testing purposes
+        submitBtn.textContent = 'Submit (No GPS Data)';
+        submitBtn.disabled = false;
+        submitBtn.style.cursor = 'pointer';
+        submitBtn.style.backgroundColor = '#e67e22';
+        
+        latInput.value = '-1.2863'; // Default center of Nairobi
+        lonInput.value = '36.8172';
+    }
+
+    const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+    };
+
+    if (navigator.geolocation) {
+         navigator.geolocation.getCurrentPosition(success, error, options);
+    } else {
+        statusDisplay.textContent = "Geolocation is not supported by this browser.";
+        statusDisplay.style.color = 'red';
+    }
+</script>
+{% endblock %}
