@@ -1,8 +1,0 @@
-asgiref==3.11.0
-Django==6.0
-GDAL==3.12.0
-numpy @ file:///D:/bld/bld/rattler-build_numpy_1763350950/work/dist/numpy-2.3.5-cp314-cp314-win_amd64.whl#sha256=ee18a6cb3a3b388c3f09af710c65c71928507b574e9d97a7897e2749534dcb1a
-pillow==12.1.1
-psycopg2-binary==2.9.11
-sqlparse==0.5.4
-tzdata==2025.2
