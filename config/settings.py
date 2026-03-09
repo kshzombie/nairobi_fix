@@ -1,12 +1,16 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-r@7(wk#@o=xy^u==v8!#0c43wzxrg6c2hcqcl_gs(yartl)1_x'
+# Load environment variables from .env file
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-DEBUG = True
+# --- SENSITIVE DATA FROM .ENV ---
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
@@ -18,7 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.gis', # Essential for PostGIS
+    'django.contrib.gis', 
     'reports.apps.ReportsConfig',
 ]
 
@@ -51,31 +55,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# --- LOCAL DATABASE (PostgreSQL/PostGIS) ---
+# --- DATABASE CONFIGURATION (Using .env) ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'postgres', # Change this if you created a specific DB like 'urban_fix_db'
-        'USER': 'postgres',
-        'PASSWORD': 'Proffess1onal@SQL',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('DB_NAME', 'postgres'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'admin@admin'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
 # --- WINDOWS GIS CONFIGURATION (Conda) ---
-# This section tells Django exactly where your Miniconda GIS libraries are.
 if os.name == 'nt':
-    # Path to your Miniconda environment
     CONDA_ENV_PATH = r"C:\Users\oduor\miniconda3\envs\webgis_env"
-    
-    # Pointing to the GDAL DLL
     GDAL_LIBRARY_PATH = os.path.join(CONDA_ENV_PATH, 'Library', 'bin', 'gdal.dll')
-    
-    # Setting the PROJ data directory (required for coordinate transformations)
     os.environ['PROJ_LIB'] = os.path.join(CONDA_ENV_PATH, 'Library', 'share', 'proj')
-    
-    # Adding the bin folder to the system path so Django can see GEOS and other DLLs
     os.environ['PATH'] = os.path.join(CONDA_ENV_PATH, 'Library', 'bin') + os.pathsep + os.environ['PATH']
 
 
