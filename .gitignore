@@ -1,1 +1,24 @@
-. 
+# --- SENSITIVE DATA ---
+.env
+
+# --- PYTHON / DJANGO ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+.python-version
+db.sqlite3
+media/
+static_root/
+
+# --- GIS / CONDA ---
+.ipynb_checkpoints/
+.conda/
+*.log
+
+# --- WINDOWS / IDE ---
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini. 
